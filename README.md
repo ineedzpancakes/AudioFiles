@@ -33,7 +33,7 @@ FULL DISCLOSURE: This is all AI slop.
 
 ## Installation
 
-### Option 1 — Download a prebuilt release (recommended)
+### Option 1 — Download a prebuilt release (***COMING SOON***)
 
 Head to the [Releases](../../releases) page and download the executable for your platform:
 
@@ -100,6 +100,6 @@ The output executable will be in the `dist/` folder.
 
 ## Contributing
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you'd like to change.
+Do whatever you want Go crazy, even. Any human-written code is bound to better than this.
 
 ---
