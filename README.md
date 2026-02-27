@@ -56,7 +56,7 @@ cd audiofiles
 pip install PySide6 mutagen Pillow
 
 # Run the app
-python audiofiles.py
+python audiofiles.pyUpdate
 ```
 
 ---
@@ -100,6 +100,6 @@ The output executable will be in the `dist/` folder.
 
 ## Contributing
 
-Do whatever you want Go crazy, even. Any human-written code is bound to better than this.
+Do whatever you want Go crazy, even. Any human-written code is bound to be better than this.
 
 ---
