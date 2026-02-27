@@ -100,6 +100,6 @@ The output executable will be in the `dist/` folder.
 
 ## Contributing
 
-Do whatever you want Go crazy, even. Any human-written code is bound to be better than this.
+Do whatever you want. Go crazy, even. Any human-written code is bound to be better than this.
 
 ---
