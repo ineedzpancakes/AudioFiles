@@ -20,7 +20,7 @@ from PIL import Image
 SUPPORTED_EXTENSIONS = {".mp3", ".flac", ".m4a", ".wav", ".ogg"}
 
 
-class AudioRenamer(QMainWindow):
+class AudioFiles(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("AudioFiles")
@@ -451,6 +451,6 @@ class AudioRenamer(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = AudioRenamer()
+    window = AudioFiles()
     window.show()
     sys.exit(app.exec())
