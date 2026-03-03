@@ -39,7 +39,7 @@ FULL DISCLOSURE: This is all AI slop. Not really happy with this so I'll get aro
 Head to the [Releases](../../releases) page and download the executable for your platform:
 
 - `AudioFiles-Windows.exe` — Windows
-- `AudioFiles-MacOS.app` — macOS ***COMING SOON***
+- `AudioFiles-MacOS.dmg` — macOS
 - `AudioFiles-Linux` — Linux
 
 No Python installation required.
