@@ -57,7 +57,7 @@ cd audiofiles
 pip install PySide6 mutagen Pillow
 
 # Run the app
-python audiofiles.pyUpdate
+python audiofiles.py
 ```
 
 ---
