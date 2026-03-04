@@ -1,15 +1,16 @@
 import sys
 import os
 from io import BytesIO
+from datetime import datetime
 
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QPushButton, QTableWidget, QTableWidgetItem,
     QProgressBar, QMessageBox, QCheckBox,
     QGroupBox, QHBoxLayout, QLabel,
-    QFileDialog, QSpinBox
+    QFileDialog, QSpinBox, QListWidget, QListWidgetItem
 )
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QPixmap
 from PySide6.QtCore import Qt
 from mutagen import File
 from mutagen.id3 import ID3, APIC
@@ -19,8 +20,61 @@ from PIL import Image
 
 SUPPORTED_EXTENSIONS = {".mp3", ".flac", ".m4a", ".wav", ".ogg"}
 
+FIELD_LABELS = {
+    "track":  "Include Track Number",
+    "disc":   "Include Disc Number",
+    "artist": "Include Artist",
+    "album":  "Include Album",
+    "title":  "Include Title",
+    "date":   "Include Date (YYYYMMDD)",
+}
 
-class AudioFiles(QMainWindow):
+
+class DraggableFieldList(QListWidget):
+    """Checkable, drag-to-reorder list of rename fields."""
+
+    def __init__(self, on_change, parent=None):
+        super().__init__(parent)
+        self.on_change = on_change
+        self.setDragDropMode(QListWidget.InternalMove)
+        self.setDefaultDropAction(Qt.MoveAction)
+        self.setSelectionMode(QListWidget.SingleSelection)
+        self.setSpacing(1)
+        self.setFixedHeight(len(FIELD_LABELS) * 26 + 6)
+
+        default_checked = {"track", "title"}
+        for key, label in FIELD_LABELS.items():
+            item = QListWidgetItem(label)
+            item.setData(Qt.UserRole, key)
+            item.setFlags(
+                Qt.ItemIsEnabled | Qt.ItemIsSelectable |
+                Qt.ItemIsUserCheckable | Qt.ItemIsDragEnabled
+            )
+            item.setCheckState(Qt.Checked if key in default_checked else Qt.Unchecked)
+            self.addItem(item)
+
+        self.model().rowsMoved.connect(self._emit_change)
+        self.itemChanged.connect(self._emit_change)
+
+    def _emit_change(self, *_):
+        self.on_change()
+
+    def ordered_checked_keys(self):
+        return [
+            self.item(i).data(Qt.UserRole)
+            for i in range(self.count())
+            if self.item(i).checkState() == Qt.Checked
+        ]
+
+    def is_checked(self, key):
+        for i in range(self.count()):
+            item = self.item(i)
+            if item.data(Qt.UserRole) == key:
+                return item.checkState() == Qt.Checked
+        return False
+
+
+class AudioRenamer(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("AudioFiles")
@@ -31,27 +85,16 @@ class AudioFiles(QMainWindow):
         self.cover_image_path = None
 
         # ---------------- Rename Options ----------------
-        self.track_cb = QCheckBox("Include Track Number")
-        self.disc_cb = QCheckBox("Include Disc Number")
-        self.artist_cb = QCheckBox("Include Artist")
-        self.album_cb = QCheckBox("Include Album")
-        self.title_cb = QCheckBox("Include Title")
-
-        self.track_cb.setChecked(True)
-        self.title_cb.setChecked(True)
-
-        for cb in [self.track_cb, self.disc_cb,
-                   self.artist_cb, self.album_cb, self.title_cb]:
-            cb.stateChanged.connect(self.refresh_table)
+        self.field_list = DraggableFieldList(self.refresh_table)
 
         self.update_metadata_cb = QCheckBox("Update Metadata to Match Rename")
         self.update_metadata_cb.stateChanged.connect(self.on_update_metadata_toggled)
 
         rename_layout = QVBoxLayout()
-        for cb in [self.track_cb, self.disc_cb,
-                   self.artist_cb, self.album_cb, self.title_cb]:
-            rename_layout.addWidget(cb)
+        rename_layout.addWidget(QLabel("Drag to reorder · Check to include:"))
+        rename_layout.addWidget(self.field_list)
         rename_layout.addWidget(self.update_metadata_cb)
+        rename_layout.addStretch()
 
         rename_group = QGroupBox("Rename Options")
         rename_group.setLayout(rename_layout)
@@ -80,11 +123,25 @@ class AudioFiles(QMainWindow):
         size_layout.addWidget(self.height_input)
         size_layout.addWidget(QLabel("px"))
 
+        self.cover_preview = QLabel()
+        self.cover_preview.setFixedSize(120, 120)
+        self.cover_preview.setAlignment(Qt.AlignCenter)
+        self.cover_preview.setStyleSheet("border: 1px solid #aaa; background: #1a1a1a;")
+        self.cover_preview.setText("No image")
+        self.cover_preview.setVisible(False)
+
+        cover_preview_layout = QHBoxLayout()
+        cover_preview_layout.addStretch()
+        cover_preview_layout.addWidget(self.cover_preview)
+        cover_preview_layout.addStretch()
+
         cover_layout = QVBoxLayout()
         cover_layout.addWidget(self.cover_cb)
         cover_layout.addWidget(self.upload_button)
+        cover_layout.addLayout(cover_preview_layout)
         cover_layout.addLayout(size_layout)
         cover_layout.addWidget(self.preserve_cb)
+        cover_layout.addStretch()
 
         cover_group = QGroupBox("Cover Art Options")
         cover_group.setLayout(cover_layout)
@@ -93,7 +150,9 @@ class AudioFiles(QMainWindow):
         self.table = QTableWidget()
         self.table.setColumnCount(2)
         self.table.setHorizontalHeaderLabels(["Original Name", "New Name"])
-        self.table.horizontalHeader().setStretchLastSection(True)
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, header.ResizeMode.Interactive)
+        header.setSectionResizeMode(1, header.ResizeMode.Stretch)
 
         # ---------------- Rename Button ----------------
         self.rename_button = QPushButton("Rename Files")
@@ -103,10 +162,14 @@ class AudioFiles(QMainWindow):
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
 
+        # ---------------- Options Row (side by side) ----------------
+        options_layout = QHBoxLayout()
+        options_layout.addWidget(rename_group, stretch=1)
+        options_layout.addWidget(cover_group, stretch=1)
+
         # ---------------- Main Layout ----------------
         layout = QVBoxLayout()
-        layout.addWidget(rename_group)
-        layout.addWidget(cover_group)
+        layout.addLayout(options_layout)
         layout.addWidget(self.table)
         layout.addWidget(self.rename_button)
         layout.addWidget(self.progress_bar)
@@ -117,7 +180,6 @@ class AudioFiles(QMainWindow):
 
         # ---------------- Menu Bar ----------------
         menu_bar = self.menuBar()
-
         file_menu = menu_bar.addMenu("File")
 
         open_file_action = QAction("Open File...", self)
@@ -130,12 +192,15 @@ class AudioFiles(QMainWindow):
         open_folder_action.triggered.connect(self.open_folder)
         file_menu.addAction(open_folder_action)
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        total = self.table.viewport().width()
+        self.table.setColumnWidth(0, total // 2)
+
     # ---------------- Menu Bar Actions ----------------
     def open_files(self):
         file_paths, _ = QFileDialog.getOpenFileNames(
-            self,
-            "Open Audio Files",
-            "",
+            self, "Open Audio Files", "",
             "Audio Files (*.mp3 *.flac *.m4a *.wav *.ogg);;All Files (*)"
         )
         for path in file_paths:
@@ -144,36 +209,7 @@ class AudioFiles(QMainWindow):
             self.refresh_table()
 
     def open_folder(self):
-        folder_path = QFileDialog.getExistingDirectory(
-            self,
-            "Open Folder",
-            ""
-        )
-        if folder_path:
-            for root, _, files in os.walk(folder_path):
-                for f in files:
-                    self.add_file(os.path.join(root, f))
-            self.refresh_table()
-
-    # ---------------- Menu Actions ----------------
-    def open_files(self):
-        file_paths, _ = QFileDialog.getOpenFileNames(
-            self,
-            "Open Audio Files",
-            "",
-            "Audio Files (*.mp3 *.flac *.m4a *.wav *.ogg);;All Files (*)"
-        )
-        for path in file_paths:
-            self.add_file(path)
-        if file_paths:
-            self.refresh_table()
-
-    def open_folder(self):
-        folder_path = QFileDialog.getExistingDirectory(
-            self,
-            "Open Folder",
-            ""
-        )
+        folder_path = QFileDialog.getExistingDirectory(self, "Open Folder", "")
         if folder_path:
             for root, _, files in os.walk(folder_path):
                 for f in files:
@@ -203,12 +239,9 @@ class AudioFiles(QMainWindow):
 
     # ---------------- Cover Logic ----------------
     def toggle_resize_inputs(self):
-        if self.preserve_cb.isChecked():
-            self.width_input.setEnabled(False)
-            self.height_input.setEnabled(False)
-        else:
-            self.width_input.setEnabled(True)
-            self.height_input.setEnabled(True)
+        enabled = not self.preserve_cb.isChecked()
+        self.width_input.setEnabled(enabled)
+        self.height_input.setEnabled(enabled)
 
     def load_cover_image(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -216,42 +249,34 @@ class AudioFiles(QMainWindow):
         )
         if file_path:
             self.cover_image_path = file_path
-            QMessageBox.information(self, "Loaded", "Cover image loaded successfully.")
+            pixmap = QPixmap(file_path).scaled(
+                120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            )
+            self.cover_preview.setPixmap(pixmap)
+            self.cover_preview.setVisible(True)
 
     def process_cover_image(self):
         if not self.cover_image_path:
             return None
-
         img = Image.open(self.cover_image_path)
-
         target_width = self.width_input.value()
         target_height = self.height_input.value()
-
         if self.preserve_cb.isChecked():
             img.thumbnail((target_width, target_height), Image.LANCZOS)
         else:
             img = img.resize((target_width, target_height), Image.LANCZOS)
-
         img_bytes = BytesIO()
         img.save(img_bytes, format="JPEG")
         return img_bytes.getvalue()
 
     def embed_cover(self, filepath, image_data):
         ext = os.path.splitext(filepath)[1].lower()
-
         try:
             if ext == ".mp3":
                 audio = ID3(filepath)
                 audio.delall("APIC")
-                audio.add(APIC(
-                    encoding=3,
-                    mime='image/jpeg',
-                    type=3,
-                    desc='Cover',
-                    data=image_data
-                ))
+                audio.add(APIC(encoding=3, mime='image/jpeg', type=3, desc='Cover', data=image_data))
                 audio.save()
-
             elif ext == ".flac":
                 audio = File(filepath)
                 audio.clear_pictures()
@@ -266,7 +291,7 @@ class AudioFiles(QMainWindow):
 
     # ---------------- Metadata Warning ----------------
     def on_update_metadata_toggled(self, state):
-        if state == Qt.Checked:
+        if state == Qt.CheckState.Checked or state == 2:
             result = QMessageBox.warning(
                 self,
                 "Warning: Metadata Will Be Modified",
@@ -283,27 +308,20 @@ class AudioFiles(QMainWindow):
                 self.update_metadata_cb.blockSignals(False)
 
     def write_metadata(self, filepath, metadata, track_number):
-        """Write back only the fields selected for renaming into the file's tags."""
         try:
             audio = File(filepath, easy=True)
             if not audio:
                 return
-
-            if self.track_cb.isChecked():
+            if self.field_list.is_checked("track"):
                 audio["tracknumber"] = str(track_number)
-
-            if self.disc_cb.isChecked():
+            if self.field_list.is_checked("disc"):
                 audio["discnumber"] = str(metadata["disc"])
-
-            if self.artist_cb.isChecked():
+            if self.field_list.is_checked("artist"):
                 audio["artist"] = metadata["artist"]
-
-            if self.album_cb.isChecked():
+            if self.field_list.is_checked("album"):
                 audio["album"] = metadata["album"]
-
-            if self.title_cb.isChecked():
+            if self.field_list.is_checked("title"):
                 audio["title"] = metadata["title"]
-
             audio.save()
         except Exception:
             pass
@@ -313,19 +331,17 @@ class AudioFiles(QMainWindow):
         audio = File(filepath, easy=True)
         if not audio:
             return None
-
         return {
-            "track": int(audio.get("tracknumber", ["0"])[0].split('/')[0]),
-            "disc": int(audio.get("discnumber", ["1"])[0].split('/')[0]),
+            "track":  int(audio.get("tracknumber", ["0"])[0].split('/')[0]),
+            "disc":   int(audio.get("discnumber",  ["1"])[0].split('/')[0]),
             "artist": audio.get("artist", ["Unknown Artist"])[0],
-            "album": audio.get("album", ["Unknown Album"])[0],
-            "title": audio.get("title", ["Unknown Title"])[0],
+            "album":  audio.get("album",  ["Unknown Album"])[0],
+            "title":  audio.get("title",  ["Unknown Title"])[0],
         }
 
     # ---------------- Sorting + Disc Logic ----------------
     def generate_sorted_data(self):
         file_data = []
-
         for f in self.files:
             metadata = self.get_metadata(f)
             if metadata:
@@ -338,9 +354,8 @@ class AudioFiles(QMainWindow):
 
         sequential_map = {}
         counter = 1
-
         for f, metadata in file_data:
-            if multi_disc and not self.disc_cb.isChecked():
+            if multi_disc and not self.field_list.is_checked("disc"):
                 sequential_map[f] = counter
                 counter += 1
             else:
@@ -349,27 +364,28 @@ class AudioFiles(QMainWindow):
         return file_data, sequential_map
 
     # ---------------- Filename Builder ----------------
-    def build_filename(self, metadata, ext, track_number):
+    def build_filename(self, metadata, ext, track_number, filepath=None):
         parts = []
-
-        if self.track_cb.isChecked():
-            parts.append(str(track_number).zfill(2))
-
-        if self.disc_cb.isChecked():
-            parts.append(f"Disc{metadata['disc']}")
-
-        if self.artist_cb.isChecked():
-            parts.append(metadata["artist"])
-
-        if self.album_cb.isChecked():
-            parts.append(metadata["album"])
-
-        if self.title_cb.isChecked():
-            parts.append(metadata["title"])
+        for key in self.field_list.ordered_checked_keys():
+            if key == "track":
+                parts.append(str(track_number).zfill(2))
+            elif key == "disc":
+                parts.append(f"Disc{metadata['disc']}")
+            elif key == "artist":
+                parts.append(metadata["artist"])
+            elif key == "album":
+                parts.append(metadata["album"])
+            elif key == "title":
+                parts.append(metadata["title"])
+            elif key == "date":
+                if filepath and os.path.exists(filepath):
+                    mtime = os.path.getmtime(filepath)
+                    parts.append(datetime.fromtimestamp(mtime).strftime("%Y%m%d"))
+                else:
+                    parts.append(datetime.now().strftime("%Y%m%d"))
 
         if not parts:
             return None
-
         return " - ".join(parts) + ext
 
     # ---------------- Preview Table ----------------
@@ -381,8 +397,7 @@ class AudioFiles(QMainWindow):
             original_name = os.path.basename(filepath)
             ext = os.path.splitext(filepath)[1]
             track_number = sequential_map[filepath]
-
-            new_name = self.build_filename(metadata, ext, track_number)
+            new_name = self.build_filename(metadata, ext, track_number, filepath)
 
             original_item = QTableWidgetItem(original_name)
             original_item.setFlags(Qt.ItemIsEnabled)
@@ -418,7 +433,7 @@ class AudioFiles(QMainWindow):
         for i, (filepath, metadata) in enumerate(file_data):
             ext = os.path.splitext(filepath)[1]
             track_number = sequential_map[filepath]
-            new_name = self.build_filename(metadata, ext, track_number)
+            new_name = self.build_filename(metadata, ext, track_number, filepath)
 
             if not new_name:
                 continue
@@ -451,6 +466,6 @@ class AudioFiles(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = AudioFiles()
+    window = AudioRenamer()
     window.show()
     sys.exit(app.exec())
