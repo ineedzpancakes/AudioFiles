@@ -1,10 +1,10 @@
 # AudioFiles
 
 A desktop application for batch-renaming and organizing audio files using their embedded metadata tags. Built with Python and PySide6, and designed for use with the **Snowsky Echo Mini** music player.
-<img width="1260" height="1057" alt="2sq30dkfeqmg1" src="https://github.com/user-attachments/assets/b96963d7-f912-49ff-8f49-ac92d94437ce" />
 
-FULL DISCLOSURE: This is all AI slop. Not really happy with this so I'll get around to refactoring it myself. *Surely.* ***Eventually.***
+<img width="1006" height="837" alt="Screenshot_20260304_104400" src="https://github.com/user-attachments/assets/f019142d-10fd-4b27-90d7-4c1accdc38af" />
 
+Full Disclosure: Made with Claude and therefore AI slop. I'll rewrite this in C++ one day.
 ---
 
 ## Features
@@ -100,7 +100,5 @@ The output executable will be in the `dist/` folder.
 ---
 
 ## Contributing
-
-Do whatever you want. Go crazy, even. Any human-written code is bound to be better than this.
-
+Go crazy.
 ---
