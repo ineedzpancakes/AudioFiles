@@ -88,7 +88,7 @@ The output executable will be in the `dist/` folder.
 > **Note for macOS:** use `--onedir` instead of `--onefile` for a proper `.app` bundle.
 
 ---
-
+Disclosur
 ## Dependencies
 
 | Package | Purpose |
@@ -100,7 +100,6 @@ The output executable will be in the `dist/` folder.
 ---
 
 ## Contributing
----
 
 Go crazy.
 
