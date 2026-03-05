@@ -1,0 +1,20 @@
+[project]
+name = "audio-files"
+version = "0.1.0"
+authors = [
+    { name = "C", email = "ineedzpancakes@gmail.com" },
+    { name = "pythoninthegrass", email = "4097471+pythoninthegrass@users.noreply.github.com" }
+]
+requires-python = ">=3.13,<3.14"
+
+dependencies = [
+    "mutagen>=1.47.0",
+    "pillow>=12.1.1",
+    "pyside6>=6.10.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller>=6.19.0",
+    "ruff>=0.15.4",
+]
