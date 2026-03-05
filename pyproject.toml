@@ -1,6 +1,6 @@
 [project]
 name = "audio-files"
-version = "0.1.0"
+version = "1.1.0"
 authors = [
     { name = "C", email = "ineedzpancakes@gmail.com" },
     { name = "pythoninthegrass", email = "4097471+pythoninthegrass@users.noreply.github.com" }
