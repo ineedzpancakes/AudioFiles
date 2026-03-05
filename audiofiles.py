@@ -1,32 +1,57 @@
-import sys
+#!/usr/bin/env -S uv run --script
+
+# /// script
+# requires-python = ">=3.13,<3.14"
+# dependencies = [
+#     "mutagen>=1.47.0",
+#     "pillow>=12.1.1",
+#     "pyside6>=6.10.2",
+# ]
+# [tool.uv]
+# exclude-newer = "2026-03-31T00:00:00Z"
+# ///
+
+# pyright: reportMissingImports=false
+
 import os
-from io import BytesIO
+import sys
 from datetime import datetime
-
-from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout,
-    QPushButton, QTableWidget, QTableWidgetItem,
-    QProgressBar, QMessageBox, QCheckBox,
-    QGroupBox, QHBoxLayout, QLabel,
-    QFileDialog, QSpinBox, QListWidget, QListWidgetItem
-)
-from PySide6.QtGui import QAction, QPixmap
-from PySide6.QtCore import Qt
+from io import BytesIO
 from mutagen import File
-from mutagen.id3 import ID3, APIC
 from mutagen.flac import Picture
+from mutagen.id3 import APIC, ID3
 from PIL import Image
-
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction, QPixmap
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QFileDialog,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QMainWindow,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 SUPPORTED_EXTENSIONS = {".mp3", ".flac", ".m4a", ".wav", ".ogg"}
 
 FIELD_LABELS = {
-    "track":  "Include Track Number",
-    "disc":   "Include Disc Number",
+    "track": "Include Track Number",
+    "disc": "Include Disc Number",
     "artist": "Include Artist",
-    "album":  "Include Album",
-    "title":  "Include Title",
-    "date":   "Include Date (YYYYMMDD)",
+    "album": "Include Album",
+    "title": "Include Title",
+    "date": "Include Date (YYYYMMDD)",
 }
 
 
@@ -46,10 +71,7 @@ class DraggableFieldList(QListWidget):
         for key, label in FIELD_LABELS.items():
             item = QListWidgetItem(label)
             item.setData(Qt.UserRole, key)
-            item.setFlags(
-                Qt.ItemIsEnabled | Qt.ItemIsSelectable |
-                Qt.ItemIsUserCheckable | Qt.ItemIsDragEnabled
-            )
+            item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsUserCheckable | Qt.ItemIsDragEnabled)
             item.setCheckState(Qt.Checked if key in default_checked else Qt.Unchecked)
             self.addItem(item)
 
@@ -60,11 +82,7 @@ class DraggableFieldList(QListWidget):
         self.on_change()
 
     def ordered_checked_keys(self):
-        return [
-            self.item(i).data(Qt.UserRole)
-            for i in range(self.count())
-            if self.item(i).checkState() == Qt.Checked
-        ]
+        return [self.item(i).data(Qt.UserRole) for i in range(self.count()) if self.item(i).checkState() == Qt.Checked]
 
     def is_checked(self, key):
         for i in range(self.count()):
@@ -200,8 +218,7 @@ class AudioRenamer(QMainWindow):
     # ---------------- Menu Bar Actions ----------------
     def open_files(self):
         file_paths, _ = QFileDialog.getOpenFileNames(
-            self, "Open Audio Files", "",
-            "Audio Files (*.mp3 *.flac *.m4a *.wav *.ogg);;All Files (*)"
+            self, "Open Audio Files", "", "Audio Files (*.mp3 *.flac *.m4a *.wav *.ogg);;All Files (*)"
         )
         for path in file_paths:
             self.add_file(path)
@@ -233,9 +250,8 @@ class AudioRenamer(QMainWindow):
         self.refresh_table()
 
     def add_file(self, filepath):
-        if filepath not in self.files:
-            if os.path.splitext(filepath)[1].lower() in SUPPORTED_EXTENSIONS:
-                self.files.append(filepath)
+        if filepath not in self.files and os.path.splitext(filepath)[1].lower() in SUPPORTED_EXTENSIONS:
+            self.files.append(filepath)
 
     # ---------------- Cover Logic ----------------
     def toggle_resize_inputs(self):
@@ -244,14 +260,10 @@ class AudioRenamer(QMainWindow):
         self.height_input.setEnabled(enabled)
 
     def load_cover_image(self):
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select Cover Image", "", "Images (*.png *.jpg *.jpeg)"
-        )
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select Cover Image", "", "Images (*.png *.jpg *.jpeg)")
         if file_path:
             self.cover_image_path = file_path
-            pixmap = QPixmap(file_path).scaled(
-                120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation
-            )
+            pixmap = QPixmap(file_path).scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             self.cover_preview.setPixmap(pixmap)
             self.cover_preview.setVisible(True)
 
@@ -300,7 +312,7 @@ class AudioRenamer(QMainWindow):
                 "to match your rename selections.\n\n"
                 "This action cannot be undone. Are you sure you want to continue?",
                 QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
+                QMessageBox.No,
             )
             if result == QMessageBox.No:
                 self.update_metadata_cb.blockSignals(True)
@@ -332,11 +344,11 @@ class AudioRenamer(QMainWindow):
         if not audio:
             return None
         return {
-            "track":  int(audio.get("tracknumber", ["0"])[0].split('/')[0]),
-            "disc":   int(audio.get("discnumber",  ["1"])[0].split('/')[0]),
+            "track": int(audio.get("tracknumber", ["0"])[0].split('/')[0]),
+            "disc": int(audio.get("discnumber", ["1"])[0].split('/')[0]),
             "artist": audio.get("artist", ["Unknown Artist"])[0],
-            "album":  audio.get("album",  ["Unknown Album"])[0],
-            "title":  audio.get("title",  ["Unknown Title"])[0],
+            "album": audio.get("album", ["Unknown Album"])[0],
+            "title": audio.get("title", ["Unknown Title"])[0],
         }
 
     # ---------------- Sorting + Disc Logic ----------------

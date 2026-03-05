@@ -2,9 +2,13 @@
 
 A desktop application for batch-renaming and organizing audio files using their embedded metadata tags. Built with Python and PySide6, and designed for use with the **Snowsky Echo Mini** music player and other Snowsky devices.
 
+<!-- markdownlint-disable MD033  -->
 <img width="1006" height="837" alt="Screenshot_20260304_104400" src="https://github.com/user-attachments/assets/f019142d-10fd-4b27-90d7-4c1accdc38af" />
 
-Full Disclosure: Made with Claude and therefore AI slop. I'll rewrite this in C++ one day.
+> [!WARNING]
+> **Full disclosure:**  
+> Made with Claude and therefore AI slop. I'll rewrite this in C++ one day.
+
 ---
 
 ## Features
@@ -23,7 +27,7 @@ Full Disclosure: Made with Claude and therefore AI slop. I'll rewrite this in C+
 ## Supported Formats
 
 | Format | Rename | Cover Art |
-|--------|--------|-----------|
+| ------ | ------- | -------- |
 | `.mp3` | ✅ | ✅ |
 | `.flac` | ✅ | ✅ |
 | `.m4a` | ✅ | — |
@@ -88,11 +92,11 @@ The output executable will be in the `dist/` folder.
 > **Note for macOS:** use `--onedir` instead of `--onefile` for a proper `.app` bundle.
 
 ---
-Disclosur
+<!-- TODO: "Disclosur" [typo?] -->
 ## Dependencies
 
 | Package | Purpose |
-|---------|---------|
+| ------- | ------- |
 | [PySide6](https://pypi.org/project/PySide6/) | GUI framework (Qt6 bindings) |
 | [mutagen](https://pypi.org/project/mutagen/) | Audio metadata reading and writing |
 | [Pillow](https://pypi.org/project/Pillow/) | Cover image processing and resizing |

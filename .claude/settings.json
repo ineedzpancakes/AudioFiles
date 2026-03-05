@@ -1,0 +1,62 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(backlog:*)",
+      "Bash(cat:*)",
+      "Bash(fd:*)",
+      "Bash(git add:*)",
+      "Bash(git bisect:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git commit:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git push:*)",
+      "Bash(git show:*)",
+      "Bash(git status:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git revert:*)",
+      "Bash(head:*)",
+      "Bash(ln:*)",
+      "Bash(ls:*)",
+      "Bash(lsof:*)",
+      "Bash(prek:*)",
+      "Bash(pytest:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(rg:*)",
+      "Bash(ruff:*)",
+      "Bash(sqlite3:*)",
+      "Bash(task:*)",
+      "Bash(tee:*)",
+      "Bash(timeout:*)",
+      "Bash(tree:*)",
+      "Bash(uv:*)",
+      "mcp__backlog__get_task_creation_guide",
+      "mcp__backlog__get_workflow_overview",
+      "mcp__backlog__task_create",
+      "mcp__backlog__task_edit",
+      "mcp__backlog__task_list",
+      "mcp__backlog__task_search",
+      "mcp__backlog__task_view",
+      "mcp__context7__query-docs",
+      "Read(//tmp/**)",
+      "Read(//Users/**)",
+      "WebSearch"
+    ],
+    "deny": []
+  }
+  // TODO: setup pre-commit hooks w/prek
+  // "hooks": {
+  //   "PostToolUse": [
+  //     {
+  //       "matcher": "Write",
+  //       "hooks": [
+  //         {
+  //           "type": "command",
+  //           "command": "git diff --name-only HEAD | xargs -r prek run --files"
+  //         }
+  //       ]
+  //     }
+  //   ]
+  // }
+}
